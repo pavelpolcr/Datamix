@@ -1,0 +1,193 @@
+﻿@page "/"
+@using Datamix.DataAccess
+@using Datamix.Model
+@using Datamix.Services
+@inject PortalItemDataAccesLayer DataAccess;
+@inject Manager Manager;
+
+<BSRow>
+    @if (!Manager.IsEditable)
+    {
+        <div class="row">
+            <div class="col-lg-12">
+                <BSCol XL="12">
+                    <BSButton Color="Color.Light" Size="Size.ExtraSmall" @onclick="@(() => EditModeEnter.Show())">Editace Portalu</BSButton>
+                </BSCol>
+                
+            </div>
+        </div>
+    }
+    @if (Manager.IsEditable)
+    {
+        <BSButton Color="Color.Primary" @onclick="@TurnEditingOff">Ukoncit Editaci a ulozit vsechny zmeny do databaze</BSButton>
+    }
+    <BSModal @ref="EditModeEnter">
+        <BSModalHeader OnClick="@(() => EditModeEnter.Hide())">Zadejte Heslo</BSModalHeader>
+        <BSModalBody>
+            <BSBasicForm IsInline="true">
+
+                <BSFormGroup Class="mb-2 mr-sm-2 mb-sm-0">
+                    <BSLabel For="examplePassword" class="mr-sm-2">Password</BSLabel>
+                    <BSBasicInput InputType="InputType.Password" Name="" Id="userPassword" PlaceHolder="Heslo" @bind-Value="userPassword"></BSBasicInput>
+                </BSFormGroup>
+                <BSButton ButtonType="ButtonType.Submit" @onclick="TurnEditingOn">Potvrdit</BSButton>
+            </BSBasicForm>
+
+        </BSModalBody>
+        <BSModalFooter>
+            <BSButton Color="Color.Secondary" @onclick="@(() => EditModeEnter.Hide())">Zavrit</BSButton>
+
+        </BSModalFooter>
+    </BSModal>
+    <BSModal @ref="CreateNewItemModal">
+        <BSModalHeader OnClick="@(() => CreateNewItemModal.Hide())">Novy odkaz</BSModalHeader>
+        <BSModalBody>
+            <BSBasicForm>
+
+                <BSFormGroup>
+                    <BSLabel For="NameText">Nazev</BSLabel>
+                    <BSBasicInput InputType="InputType.Text" Name="Name" Id="NameText" @bind-Value="newName"></BSBasicInput>
+                </BSFormGroup>
+                <BSFormGroup>
+                    <BSLabel For="DescriptionText">Popis</BSLabel>
+                    <BSBasicInput InputType="InputType.TextArea" Name="Desc" Id="DescText" @bind-Value="newDesc"></BSBasicInput>
+                </BSFormGroup>
+                <BSFormGroup>
+                    <BSLabel For="UrlText">Url</BSLabel>
+                    <BSBasicInput InputType="InputType.Url" Name="Url" Id="UrlText" @bind-Value="newUrl"></BSBasicInput>
+                </BSFormGroup>
+                <BSFormGroup>
+                    <BSButton @onclick="CheckAndSaveNewEntry">Ulozit</BSButton>
+                </BSFormGroup>
+            </BSBasicForm>
+
+        </BSModalBody>
+        <BSModalFooter>
+            <BSButton Color="Color.Secondary" @onclick="@(() => CreateNewItemModal.Hide())">Zavrit bez ulozeni</BSButton>
+
+        </BSModalFooter>
+    </BSModal>
+
+</BSRow>
+<BSCard CardType="CardType.Columns">
+    @if (Manager.IsEditable)
+    {
+        <BSCard>
+            <BSCard CardType="CardType.Body">
+                <BSCard CardType="CardType.Title">Vytvorit Novy Odkaz</BSCard>
+
+            </BSCard>
+
+            <BSCard CardType="CardType.Body">
+
+                <BSButton Color="Color.Primary" Size="Size.Small" @onclick="CreateNewPortalItem">Pridat</BSButton>
+
+            </BSCard>
+        </BSCard>
+    }
+    @foreach (PortalItem item in Manager.AllItems)
+    {
+
+        <BSCard>
+            <BSCard CardType="CardType.Body">
+                <BSCard CardType="CardType.Title">@item.Name</BSCard>
+            </BSCard>
+            @*<BSCard CardType="CardType.Image" src="temp.jpg" alt="Card image cap" />*@
+            <BSCard CardType="CardType.Body">
+
+                @if (Manager.IsEditable)
+                {
+                    <BSBasicForm IsInline="false">
+
+                        <BSFormGroup Class="mb-2 mr-sm-2 mb-sm-0">
+                            <BSLabel class="mr-sm-2">Nazev</BSLabel>
+                            <BSBasicInput InputType="InputType.Text" @bind-Value="item.Name"></BSBasicInput>
+                        </BSFormGroup>
+
+                    </BSBasicForm>
+                    <BSBasicForm IsInline="false">
+
+                        <BSFormGroup Class="mb-2 mr-sm-2 mb-sm-0">
+                            <BSLabel  class="mr-sm-2">Popis</BSLabel>
+                            <BSBasicInput InputType="InputType.Text"  @bind-Value="item.Description"></BSBasicInput>
+                        </BSFormGroup>
+
+                    </BSBasicForm>
+                    <BSBasicForm IsInline="false">
+
+                        <BSFormGroup Class="mb-2 mr-sm-2 mb-sm-0">
+                            <BSLabel  class="mr-sm-2">Url</BSLabel>
+                            <BSBasicInput InputType="InputType.Text"  @bind-Value="item.Url"></BSBasicInput>
+                        </BSFormGroup>
+
+                    </BSBasicForm>
+                }
+                @if (!Manager.IsEditable)
+                {
+                    <BSCard CardType="CardType.Text">@item.Description</BSCard>
+                    <BSCard CardType="CardType.Link" href=@item.Url target="_blank">Odkaz do aplikace</BSCard>
+
+                }
+
+
+                @if (Manager.IsEditable)
+                {
+                    <BSButton Color="Color.Primary" Size="Size.Small" @onclick=@(() => Manager.DeleteItem(item.Id))>Smazat</BSButton>
+                }
+            </BSCard>
+        </BSCard>
+
+    }
+</BSCard>
+
+@code{
+    BSModal EditModeEnter;
+    BSModal CreateNewItemModal;
+    BSModal EditItemModal;
+    string userPassword;
+    string newName;
+    string newUrl;
+    string newDesc;
+
+    public void TurnEditingOn()
+    {
+        if (userPassword == Manager.Password)
+        {
+            Manager.IsEditable = true;
+            EditModeEnter.Hide();
+        }
+        else
+        {
+
+            EditModeEnter.Hide();
+
+        }
+
+    }
+    public void TurnEditingOff()
+    {
+        Manager.IsEditable = false;
+        Manager.SaveAllChanges();
+
+
+    }
+    public void CreateNewPortalItem()
+    {
+        CreateNewItemModal.Show();
+    }
+    public void CheckAndSaveNewEntry()
+    {
+        if (newName != null && newUrl != null)
+            Manager.AddNewPortalItem(newName, newDesc, newUrl);
+        CreateNewItemModal.Hide();
+        CleanStrings();
+    }
+    public void CleanStrings()
+    {
+        newDesc = "";
+        newName = "";
+        newUrl = "";
+    }
+
+
+}
